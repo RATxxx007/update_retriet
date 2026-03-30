@@ -3,9 +3,11 @@ document.documentElement.classList.add("js");
 const header = document.querySelector(".site-header");
 const yearNode = document.querySelector("#year");
 const revealNodes = document.querySelectorAll("[data-reveal]");
-const faqItems = document.querySelectorAll(".faq-item");
 const formatChoiceButtons = document.querySelectorAll("[data-format-choice]");
 const dateChoiceButtons = document.querySelectorAll("[data-date-choice]");
+const dateCards = document.querySelectorAll("[data-date-card]");
+const programTabs = document.querySelectorAll("[data-program-tab]");
+const programPanels = document.querySelectorAll("[data-program-panel]");
 const forms = document.querySelectorAll(".inquiry-form");
 const copyButtons = document.querySelectorAll("[data-copy-inquiry]");
 const config = window.UPDATE_RETREAT_CONFIG || {};
@@ -68,29 +70,16 @@ const initReveal = () => {
   revealNodes.forEach((node) => observer.observe(node));
 };
 
-const openFaq = (item, expanded) => {
-  const button = item.querySelector(".faq-question");
-  item.classList.toggle("is-open", expanded);
-  if (button) button.setAttribute("aria-expanded", String(expanded));
-};
-
-faqItems.forEach((item, index) => {
-  const button = item.querySelector(".faq-question");
-  if (!button) return;
-
-  if (index === 0) openFaq(item, true);
-
-  button.addEventListener("click", () => {
-    const isOpen = item.classList.contains("is-open");
-    faqItems.forEach((faqItem) => openFaq(faqItem, false));
-    openFaq(item, !isOpen);
-  });
-});
-
 const setSelectedFormat = (value) => {
   forms.forEach((form) => {
     const select = form.querySelector('select[name="format"]');
     if (select && value) select.value = value;
+  });
+};
+
+const syncDateCards = (value) => {
+  dateCards.forEach((card) => {
+    card.classList.toggle("is-selected", card.dataset.dateCard === value);
   });
 };
 
@@ -99,6 +88,7 @@ const setSelectedDate = (value) => {
     const select = form.querySelector('select[name="retreatDate"]');
     if (select && value) select.value = value;
   });
+  syncDateCards(value);
 };
 
 formatChoiceButtons.forEach((button) => {
@@ -123,6 +113,26 @@ dateChoiceButtons.forEach((button) => {
         node.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }
+  });
+});
+
+const openProgramPanel = (targetId) => {
+  programTabs.forEach((tab) => {
+    const isActive = tab.dataset.programTab === targetId;
+    tab.classList.toggle("is-active", isActive);
+    tab.setAttribute("aria-selected", String(isActive));
+  });
+
+  programPanels.forEach((panel) => {
+    const isActive = panel.id === targetId;
+    panel.classList.toggle("is-active", isActive);
+    panel.hidden = !isActive;
+  });
+};
+
+programTabs.forEach((tab) => {
+  tab.addEventListener("click", () => {
+    openProgramPanel(tab.dataset.programTab);
   });
 });
 
@@ -182,6 +192,13 @@ copyButtons.forEach((button) => {
 });
 
 forms.forEach((form) => {
+  const dateSelect = form.querySelector('select[name="retreatDate"]');
+  if (dateSelect) {
+    dateSelect.addEventListener("change", () => {
+      syncDateCards(dateSelect.value);
+    });
+  }
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -236,5 +253,7 @@ forms.forEach((form) => {
 setRevealDelay();
 initReveal();
 syncHeader();
+syncDateCards("16-20 мая");
+openProgramPanel("day-1");
 
 window.addEventListener("scroll", syncHeader, { passive: true });
