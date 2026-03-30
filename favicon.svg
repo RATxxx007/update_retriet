@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>Update Retreat favicon</title>
+  <defs>
+    <linearGradient id="g" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#9c7f5b" />
+      <stop offset="100%" stop-color="#6a523b" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="#171411" />
+  <path
+    d="M18 18v16c0 9 5.7 14 14 14s14-5 14-14V18h-6v16c0 5.4-2.7 8.4-8 8.4s-8-3-8-8.4V18z"
+    fill="url(#g)"
+  />
+</svg>
