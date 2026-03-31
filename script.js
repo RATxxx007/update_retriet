@@ -3,13 +3,15 @@ document.documentElement.classList.add("js");
 const header = document.querySelector(".site-header");
 const yearNode = document.querySelector("#year");
 const revealNodes = document.querySelectorAll("[data-reveal]");
-const formatChoiceButtons = document.querySelectorAll("[data-format-choice]");
 const dateChoiceButtons = document.querySelectorAll("[data-date-choice]");
 const dateCards = document.querySelectorAll("[data-date-card]");
-const programTabs = document.querySelectorAll("[data-program-tab]");
-const programPanels = document.querySelectorAll("[data-program-panel]");
+const carousels = document.querySelectorAll("[data-carousel]");
 const forms = document.querySelectorAll(".inquiry-form");
 const copyButtons = document.querySelectorAll("[data-copy-inquiry]");
+const venueModal = document.querySelector("[data-venue-modal]");
+const venueModalContent = document.querySelector("[data-venue-modal-content]");
+const venueOpenButtons = document.querySelectorAll("[data-venue-open]");
+const venueCloseButtons = document.querySelectorAll("[data-venue-close]");
 const config = window.UPDATE_RETREAT_CONFIG || {};
 
 const messages = {
@@ -22,9 +24,23 @@ const messages = {
 };
 
 const dateDeadlines = {
-  "16-20 мая": "предоплата до 16 апреля",
+  "15-20 мая": "предоплата до 16 апреля",
   "23-26 мая": "предоплата до 23 апреля",
+  "28 мая - 1 июня": "предоплата до 15 мая",
   "6-10 июня": "предоплата до 6 мая",
+};
+
+const dateLocations = {
+  "15-20 мая": "Edis Dacha",
+  "23-26 мая": "Edis Dacha",
+  "28 мая - 1 июня": "Hotel Qvevrebi",
+  "6-10 июня": "Edis Dacha",
+};
+
+const formatLabels = {
+  corporate: "Корпоративный выезд",
+  "c-level": "C-level management",
+  employees: "Отдых для сотрудников",
 };
 
 if (yearNode) {
@@ -64,17 +80,10 @@ const initReveal = () => {
         observer.unobserve(entry.target);
       });
     },
-    { threshold: 0.18, rootMargin: "0px 0px -40px 0px" }
+    { threshold: 0.14, rootMargin: "0px 0px -40px 0px" }
   );
 
   revealNodes.forEach((node) => observer.observe(node));
-};
-
-const setSelectedFormat = (value) => {
-  forms.forEach((form) => {
-    const select = form.querySelector('select[name="format"]');
-    if (select && value) select.value = value;
-  });
 };
 
 const syncDateCards = (value) => {
@@ -91,17 +100,6 @@ const setSelectedDate = (value) => {
   syncDateCards(value);
 };
 
-formatChoiceButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    const value = button.dataset.formatChoice;
-    setSelectedFormat(value);
-    const contactSection = document.querySelector("#contact");
-    if (contactSection) {
-      contactSection.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  });
-});
-
 dateChoiceButtons.forEach((button) => {
   button.addEventListener("click", () => {
     const value = button.dataset.dateChoice;
@@ -116,39 +114,59 @@ dateChoiceButtons.forEach((button) => {
   });
 });
 
-const openProgramPanel = (targetId) => {
-  programTabs.forEach((tab) => {
-    const isActive = tab.dataset.programTab === targetId;
-    tab.classList.toggle("is-active", isActive);
-    tab.setAttribute("aria-selected", String(isActive));
+carousels.forEach((carousel) => {
+  const viewport = carousel.querySelector("[data-carousel-viewport]");
+  const prevButton = carousel.querySelector("[data-carousel-prev]");
+  const nextButton = carousel.querySelector("[data-carousel-next]");
+  if (!viewport || !prevButton || !nextButton) return;
+
+  const scrollAmount = () => Math.max(viewport.clientWidth * 0.88, 280);
+
+  prevButton.addEventListener("click", () => {
+    viewport.scrollBy({ left: -scrollAmount(), behavior: "smooth" });
   });
 
-  programPanels.forEach((panel) => {
-    const isActive = panel.id === targetId;
-    panel.classList.toggle("is-active", isActive);
-    panel.hidden = !isActive;
+  nextButton.addEventListener("click", () => {
+    viewport.scrollBy({ left: scrollAmount(), behavior: "smooth" });
   });
+});
+
+const openVenueModal = (venueId) => {
+  if (!venueModal || !venueModalContent) return;
+  const template = document.querySelector(`#venue-template-${venueId}`);
+  if (!(template instanceof HTMLTemplateElement)) return;
+  venueModalContent.innerHTML = template.innerHTML;
+  venueModal.hidden = false;
+  document.body.style.overflow = "hidden";
 };
 
-programTabs.forEach((tab) => {
-  tab.addEventListener("click", () => {
-    openProgramPanel(tab.dataset.programTab);
-  });
+const closeVenueModal = () => {
+  if (!venueModal || !venueModalContent) return;
+  venueModal.hidden = true;
+  venueModalContent.innerHTML = "";
+  document.body.style.overflow = "";
+};
+
+venueOpenButtons.forEach((button) => {
+  button.addEventListener("click", () => openVenueModal(button.dataset.venueOpen));
+});
+
+venueCloseButtons.forEach((button) => {
+  button.addEventListener("click", closeVenueModal);
+});
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeVenueModal();
 });
 
 const buildInquirySummary = (form) => {
   const formData = new FormData(form);
-  const selectedDate = formData.get("retreatDate") || "16-20 мая";
-
-  const formatLabels = {
-    "small-company": "Небольшая компания",
-    "c-level": "C-level management",
-    b2b2c: "B2B2C для сотрудников",
-  };
+  const selectedDate = formData.get("retreatDate") || "15-20 мая";
 
   return [
-    `Продукт: Summit Reset`,
-    `Дата: ${selectedDate}`,
+    "Продукт: Summit Reset",
+    `Слот: ${selectedDate}`,
+    `Площадка: ${dateLocations[selectedDate] || ""}`,
     `Дедлайн предоплаты: ${dateDeadlines[selectedDate] || ""}`,
     `Компания: ${formData.get("company") || ""}`,
     `Контактное лицо: ${formData.get("fullName") || ""}`,
@@ -156,7 +174,7 @@ const buildInquirySummary = (form) => {
     `Контакт: ${formData.get("contact") || ""}`,
     `Размер группы: ${formData.get("groupSize") || ""}`,
     `Формат: ${formatLabels[formData.get("format")] || formData.get("format") || ""}`,
-    `Цель поездки: ${formData.get("goals") || ""}`,
+    `Задачи и хотелки: ${formData.get("goals") || ""}`,
   ].join("\n");
 };
 
@@ -194,9 +212,7 @@ copyButtons.forEach((button) => {
 forms.forEach((form) => {
   const dateSelect = form.querySelector('select[name="retreatDate"]');
   if (dateSelect) {
-    dateSelect.addEventListener("change", () => {
-      syncDateCards(dateSelect.value);
-    });
+    dateSelect.addEventListener("change", () => syncDateCards(dateSelect.value));
   }
 
   form.addEventListener("submit", async (event) => {
@@ -216,6 +232,7 @@ forms.forEach((form) => {
     const payload = {
       product: "Summit Reset",
       retreatDate: form.elements.retreatDate.value,
+      retreatLocation: dateLocations[form.elements.retreatDate.value] || "",
       retreatDeadline: dateDeadlines[form.elements.retreatDate.value] || "",
       company: form.elements.company.value.trim(),
       fullName: form.elements.fullName.value.trim(),
@@ -239,9 +256,10 @@ forms.forEach((form) => {
       if (!response.ok) throw new Error("Request failed");
 
       form.reset();
-      setSelectedDate("16-20 мая");
-      setSelectedFormat("small-company");
       form.elements.groupSize.value = 5;
+      form.elements.retreatDate.value = "15-20 мая";
+      form.elements.format.value = "corporate";
+      syncDateCards("15-20 мая");
       if (panel) panel.hidden = true;
       if (status) status.textContent = messages.sent;
     } catch {
@@ -253,7 +271,6 @@ forms.forEach((form) => {
 setRevealDelay();
 initReveal();
 syncHeader();
-syncDateCards("16-20 мая");
-openProgramPanel("day-1");
+syncDateCards("15-20 мая");
 
 window.addEventListener("scroll", syncHeader, { passive: true });
